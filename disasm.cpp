@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
   chipFile.seekg(0, std::ios::beg);
 
   // Create buffer and read chip-8 file
-  uint8_t *chipBuffer = static_cast<uint8_t*>(malloc(fileSize + PROGRAM_START));
+  uint8_t *chipBuffer = new uint8_t[fileSize + PROGRAM_START];
   if(!chipFile.read(reinterpret_cast<char*>(chipBuffer + PROGRAM_START), fileSize)) {
     fprintf(stderr, "Error while reading chip-8 file\n");
     return EXIT_FAILURE;
@@ -32,6 +32,9 @@ int main(int argc, char** argv) {
     disassemble_op(chipBuffer, pc);
     pc += 2;
   }
+
+  // Free memory
+  delete chipBuffer; chipBuffer = nullptr;
 
   return EXIT_SUCCESS;
 }
