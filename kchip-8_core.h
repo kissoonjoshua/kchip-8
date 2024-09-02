@@ -74,10 +74,21 @@ public:
   }
 
   void run() {
+    sdl->redraw(s->memory + DISPLAY_START);
+
     while(s->status != Status::STOPPED) {
-      emulate_op();
       sdl->input_handler();
-      sdl->delay();
+
+      if(s->status != Status::PAUSED) {
+        uint64_t start = SDL_GetPerformanceCounter();
+        for(uint32_t i = 0; i < cfg->inst_per_sec / 60; i++) {
+          emulate_op();
+        }
+        uint64_t end = SDL_GetPerformanceCounter();
+        double runtime = static_cast<double>((end - start) * 1000) / static_cast<double>(SDL_GetPerformanceFrequency());
+        sdl->delay(std::max(16.67 - runtime, 0.0));
+        update_timers();
+      }
     }
   }
 
@@ -189,8 +200,8 @@ private:
       }
       case 0x0E:
         switch(ip[1]) {
-          case 0x9E: s->pc += s->keys & (1 << s->v[*ip & 0x0F]) ? 2 : 0; break;
-          case 0xA1: s->pc += s->keys & (1 << s->v[*ip & 0x0F]) ? 0 : 2; break;
+          case 0x9E: s->pc += s->keys & (1 << s->v[*ip & 0x0F]) ? 4 : 2; break;
+          case 0xA1: s->pc += s->keys & (1 << s->v[*ip & 0x0F]) ? 2 : 4; break;
           default:
             not_implemented(*ip, ip[1]);
         }
@@ -199,15 +210,10 @@ private:
         switch(ip[1]) {
           case 0x07: s->v[*ip & 0x0F] = s->delay; break;
           case 0x0A:
-            if(s->key_wait) {
-              if(std::popcount(s->keys) > std::popcount(s->prev_keys)) {
-                s->v[*ip & 0x0F] = s->keys ^ s->prev_keys;
-                s->key_wait = false;
-                break;
-              }
-            } else {
-              s->key_wait = true;
-              s->prev_keys = s->keys;
+            if(std::popcount(s->keys) > std::popcount(s->prevKeys)) {
+              uint16_t pressedKey = s->keys ^ s->prevKeys;
+              s->v[*ip & 0x0F] = static_cast<uint8_t>(std::countr_zero(pressedKey));
+              break;
             }
             return;
           case 0x15: s->delay = s->v[*ip & 0x0F]; break;
@@ -235,6 +241,12 @@ private:
       default:
         not_implemented(*ip, ip[1]);
     }
+  }
+
+  void update_timers() {
+    s->delay -= s->delay > 0;
+    sdl->toggle_audio(s->sound > 0);
+    s->sound -= s->sound > 0;
   }
 
   void not_implemented(uint8_t high, uint8_t low) {

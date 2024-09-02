@@ -16,19 +16,22 @@ struct State {
   uint16_t i;
   uint8_t delay;
   uint8_t sound;
-  uint8_t keys;
-  uint8_t prev_keys;
-  bool key_wait;
+  uint16_t keys;
+  uint16_t prevKeys;
   uint8_t v[0x10];
   uint8_t *memory;
   uint8_t *display;
 };
 
 struct Config {
-  uint32_t display_width = 0x40;
-  uint32_t display_height = 0x20;
+  uint32_t display_width = 64;
+  uint32_t display_height = 32;
   uint32_t foreground = 0xFFFFFFFF;
-  uint32_t background = 0x00000000;
-  int32_t scale = 10; 
+  uint32_t background = 0x000000FF;
+  uint32_t inst_per_sec = 700;
+  uint32_t wave_freq = 440;
+  uint32_t sample_rate = 44100;
+  int32_t scale = 10;
+  int16_t volume = 3000;
   bool outline = true;
 };
