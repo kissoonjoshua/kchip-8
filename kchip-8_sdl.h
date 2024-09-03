@@ -28,7 +28,7 @@ public:
     want.freq = cfg->sample_rate;
     want.format = AUDIO_S16LSB;
     want.channels = 1;
-    want.samples = 4096;
+    want.samples = 512;
     want.callback = audio_callback;
     want.userdata = this->cfg;
     device = SDL_OpenAudioDevice(nullptr, 0, &want, &have, 0);
@@ -103,6 +103,7 @@ public:
               if(emuState->status == Status::RUNNING) emuState->status = Status::PAUSED; 
               else emuState->status = Status::RUNNING; 
               return;
+            case SDL_SCANCODE_BACKSPACE: emuState->status = Status::RESET; return; 
             case SDL_SCANCODE_1: emuState->keys |= 1 << 0x1; break;
             case SDL_SCANCODE_2: emuState->keys |= 1 << 0x2; break;
             case SDL_SCANCODE_3: emuState->keys |= 1 << 0x3; break;

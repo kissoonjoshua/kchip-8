@@ -5,12 +5,12 @@
 int main(int argc, char **argv) {
   if(argc != 2) exit(EXIT_FAILURE);
 
-  // Initialize emulator state and read program
+  // Initialize emulator state and set rom location
   Config cfg{};
   State state{};
   SDL sdl(state, cfg);  
   KChip8 emu(state, cfg, sdl);
-  emu.load_rom(argv[1]);
+  emu.set_rom(argv[1]);
 
   // Run emulator
   emu.run();

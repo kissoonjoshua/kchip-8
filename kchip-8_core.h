@@ -34,10 +34,59 @@ constexpr uint8_t FONT[] = {
   0xF0, 0x80, 0xF0, 0x80, 0x80  
 };
 
-
 class KChip8 {
 public:
   KChip8(State &state, Config &config, SDL &sdlObj): s{&state}, cfg{&config}, sdl{&sdlObj} {
+    init_emu();
+  }
+
+  ~KChip8() {
+    delete s->memory; s->memory = nullptr;
+    s->display = nullptr;
+  }
+
+  void set_rom(std::string filePath) {
+    s->rom_loc = filePath;
+  }
+
+  void run() {
+    load_rom();
+    sdl->clear();
+
+    while(s->status != Status::STOPPED) {
+      sdl->input_handler();
+
+      switch(s->status) {
+      case Status::RESET:
+        init_emu();
+        load_rom();
+        sdl->clear();
+        s->status = Status::RUNNING;
+        break;
+      case Status::RUNNING: {
+        uint64_t start = SDL_GetPerformanceCounter();
+        for(uint32_t i = 0; i < cfg->inst_per_sec / 60; i++) {
+          emulate_op();
+        }
+        uint64_t end = SDL_GetPerformanceCounter();
+        double runtime = static_cast<double>((end - start) * 1000) / static_cast<double>(SDL_GetPerformanceFrequency());
+        sdl->delay(std::max(16.67 - runtime, 0.0));
+
+        if(s->draw) {
+          sdl->redraw(s->memory + DISPLAY_START);
+          s->draw = false;
+        }
+
+        update_timers();
+        break;
+      }
+      default: break;
+      }
+    }
+  }
+
+private:
+  void init_emu() {
     s->status = Status::RUNNING;
     s->pc = PC_START; 
     s->sp = SP_START;
@@ -51,14 +100,9 @@ public:
     srand(static_cast<unsigned>(time(nullptr)));
   }
 
-  ~KChip8() {
-    delete s->memory; s->memory = nullptr;
-    s->display = nullptr;
-  }
-
-  void load_rom(const char* romName) {
+  void load_rom() {
     // Get file size
-    std::ifstream chipFile(romName, std::ios::binary | std::ios::ate); 
+    std::ifstream chipFile(s->rom_loc, std::ios::binary | std::ios::ate); 
     if(!chipFile.is_open()) {
       fprintf(stderr, "Error occurred while opening chip-8 file.\n");
       exit(EXIT_FAILURE);
@@ -73,30 +117,11 @@ public:
     }
   }
 
-  void run() {
-    sdl->redraw(s->memory + DISPLAY_START);
-
-    while(s->status != Status::STOPPED) {
-      sdl->input_handler();
-
-      if(s->status != Status::PAUSED) {
-        uint64_t start = SDL_GetPerformanceCounter();
-        for(uint32_t i = 0; i < cfg->inst_per_sec / 60; i++) {
-          emulate_op();
-        }
-        uint64_t end = SDL_GetPerformanceCounter();
-        double runtime = static_cast<double>((end - start) * 1000) / static_cast<double>(SDL_GetPerformanceFrequency());
-        sdl->delay(std::max(16.67 - runtime, 0.0));
-        update_timers();
-      }
-    }
-  }
-
-private:
   void emulate_op() {
     // Get opcode from first nibble (Big Endian)
     uint8_t *ip = s->memory + s->pc;
     uint8_t opHigh = *ip >> 4;
+    uint8_t carry = 0;
 
     // Handle high bit of opcode
     switch(opHigh) {
@@ -104,7 +129,7 @@ private:
         switch(ip[1]) {
           case 0xE0:
             memset(s->memory + DISPLAY_START, 0, DISPLAY_SIZE);
-            sdl->redraw(s->memory + DISPLAY_START);
+            s->draw = true;
             break;
           case 0xEE:
             s->sp -= 2;
@@ -136,30 +161,43 @@ private:
       case 0x08:
         switch(ip[1] & 0x0F) {
           case 0x00: s->v[*ip & 0x0F] = s->v[ip[1] >> 4]; break;
-          case 0x01: s->v[*ip & 0x0F] |= s->v[ip[1] >> 4]; break;
-          case 0x02: s->v[*ip & 0x0F] &= s->v[ip[1] >> 4]; break;
-          case 0x03: s->v[*ip & 0x0F] ^= s->v[ip[1] >> 4]; break;
+          case 0x01: 
+            s->v[*ip & 0x0F] |= s->v[ip[1] >> 4]; 
+            s->v[0x0F] = 0;
+            break;
+          case 0x02: 
+            s->v[*ip & 0x0F] &= s->v[ip[1] >> 4]; 
+            s->v[0x0F] = 0;
+            break;
+          case 0x03: 
+            s->v[*ip & 0x0F] ^= s->v[ip[1] >> 4]; 
+            s->v[0x0F] = 0;
+            break;
           case 0x04: {
             uint8_t res = s->v[*ip & 0x0F] + s->v[ip[1] >> 4]; 
             s->v[0x0F] = res < s->v[*ip & 0x0F]; 
             s->v[*ip & 0x0F] = res;
             break;
           } 
-          case 0x05: 
-            s->v[0x0F] = s->v[*ip & 0x0F] >= s->v[ip[1] >> 4]; 
+          case 0x05:
+            carry = s->v[*ip & 0x0F] >= s->v[ip[1] >> 4]; 
             s->v[*ip & 0x0F] -= s->v[ip[1] >> 4]; 
+            s->v[0x0F] = carry;
             break;
           case 0x06:
-            s->v[0x0F] = s->v[*ip & 0x0F] & 0x01; 
-            s->v[*ip & 0x0F] >>= 1; 
+            carry = s->v[ip[1] >> 4] & 0x01; 
+            s->v[*ip & 0x0F] = s->v[ip[1] >> 4] >> 1; 
+            s->v[0x0F] = carry;
             break;
-          case 0x07: 
-            s->v[0x0F] = s->v[*ip & 0x0F] <= s->v[ip[1] >> 4]; 
+          case 0x07:
+            carry = s->v[*ip & 0x0F] <= s->v[ip[1] >> 4]; 
             s->v[*ip & 0x0F] = s->v[ip[1] >> 4] - s->v[*ip & 0x0F]; 
+            s->v[0x0F] = carry;
             break;
           case 0x0E: 
-            s->v[0x0F] = static_cast<int8_t>(s->v[*ip & 0x0F]) < 0; 
-            s->v[*ip & 0x0F] <<= 1; 
+            carry = static_cast<int8_t>(s->v[ip[1] >> 4]) < 0; 
+            s->v[*ip & 0x0F] = s->v[ip[1] >> 4] << 1; 
+            s->v[0x0F] = carry;
             break;
           default:
             not_implemented(*ip, ip[1]);
@@ -194,7 +232,7 @@ private:
             *displayLoc ^= spriteBit << xBitPos;
           }
         }
-        sdl->redraw(s->memory + DISPLAY_START);
+        s->draw = true;
         s->pc += 2;
         break;
       }
@@ -210,9 +248,14 @@ private:
         switch(ip[1]) {
           case 0x07: s->v[*ip & 0x0F] = s->delay; break;
           case 0x0A:
+            static int8_t lastPressedKey = -1;
             if(std::popcount(s->keys) > std::popcount(s->prevKeys)) {
-              uint16_t pressedKey = s->keys ^ s->prevKeys;
-              s->v[*ip & 0x0F] = static_cast<uint8_t>(std::countr_zero(pressedKey));
+              lastPressedKey = static_cast<int8_t>(s->keys ^ s->prevKeys);
+            }
+            if(lastPressedKey != -1 && !(s->keys & lastPressedKey)) {
+              uint8_t key = static_cast<uint8_t>(lastPressedKey);
+              s->v[*ip & 0x0F] = static_cast<uint8_t>(std::countr_zero(key));
+              lastPressedKey = -1;
               break;
             }
             return;
@@ -229,9 +272,11 @@ private:
             break;
           case 0x55:
             memcpy(s->memory + s->i, s->v, 1 + static_cast<size_t>(*ip & 0x0F));
+            s->i += 1 + static_cast<size_t>(*ip & 0x0F);
             break;
           case 0x65:
             memcpy(s->v, s->memory + s->i, 1 + static_cast<size_t>(*ip & 0x0F));
+            s->i += 1 + static_cast<size_t>(*ip & 0x0F);
             break;
           default:
             not_implemented(*ip, ip[1]);

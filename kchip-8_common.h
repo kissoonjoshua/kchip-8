@@ -5,7 +5,8 @@
 enum class Status: uint8_t {
   STOPPED,
   PAUSED,
-  RUNNING
+  RUNNING,
+  RESET,
 };
 
 struct State {
@@ -21,6 +22,8 @@ struct State {
   uint8_t v[0x10];
   uint8_t *memory;
   uint8_t *display;
+  bool draw;
+  std::string rom_loc;
 };
 
 struct Config {
