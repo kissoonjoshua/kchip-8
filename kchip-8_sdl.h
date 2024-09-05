@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 
+#define SDL_MAIN_HANDLED
 #include "SDL.h"
 #include "kchip-8_common.h"
 
