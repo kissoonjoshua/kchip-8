@@ -3,7 +3,7 @@
 
 #define SDL_MAIN_HANDLED
 #include "SDL.h"
-#include "kchip-8_common.h"
+#include "Common/common.h"
 
 class SDL {
 public:
@@ -58,7 +58,7 @@ public:
   }
 
   void redraw(uint8_t const *display) { 
-    SDL_Rect pixel = { .x = 0, .y = 0, .w = cfg->scale, .h = cfg->scale };
+    SDL_Rect pixel = { 0, 0, cfg->scale, cfg->scale };
     const uint8_t bg_r = static_cast<uint8_t>(cfg->background >> 24);
     const uint8_t bg_g = static_cast<uint8_t>(cfg->background >> 16);
     const uint8_t bg_b = static_cast<uint8_t>(cfg->background >> 8);

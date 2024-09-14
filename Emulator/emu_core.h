@@ -5,8 +5,8 @@
 #include <fstream>
 #include <bit>
 
-#include "kchip-8_common.h"
-#include "kchip-8_sdl.h"
+#include "Common/common.h"
+#include "IO/io.h"
 
 constexpr uint16_t PC_START = 0x200;
 constexpr uint16_t SP_START = 0xEA0;
