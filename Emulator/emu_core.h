@@ -1,12 +1,12 @@
 #pragma once
+#include "Common/common.h"
+#include "IO/io.h"
+
 #include <cstdint>
 #include <cstddef>
 #include <cstring>
 #include <fstream>
 #include <bit>
-
-#include "Common/common.h"
-#include "IO/io.h"
 
 constexpr uint16_t PC_START = 0x200;
 constexpr uint16_t SP_START = 0xEA0;
@@ -36,7 +36,7 @@ constexpr uint8_t FONT[] = {
 
 class KChip8 {
 public:
-  KChip8(State &state, Config &config, SDL &sdlObj): s{&state}, cfg{&config}, sdl{&sdlObj} {
+  KChip8(State *state, Config *config, SDL *sdlObj, RenderCallback cb): s{state}, cfg{config}, sdl{sdlObj}, rcb{cb} {
     init_emu();
   }
 
@@ -46,12 +46,12 @@ public:
   }
 
   void set_rom(std::string filePath) {
-    s->rom_loc = filePath;
+    s->romLoc = filePath;
   }
 
   void run() {
     load_rom();
-    sdl->clear();
+    render(nullptr);
 
     while(s->status != Status::STOPPED) {
       sdl->input_handler();
@@ -60,12 +60,12 @@ public:
       case Status::RESET:
         init_emu();
         load_rom();
-        sdl->clear();
+        render(nullptr);
         s->status = Status::RUNNING;
         break;
       case Status::RUNNING: {
         uint64_t start = SDL_GetPerformanceCounter();
-        for(uint32_t i = 0; i < cfg->inst_per_sec / 60; i++) {
+        for(uint32_t i = 0; i < cfg->instPerSec / 60; i++) {
           emulate_op();
         }
         uint64_t end = SDL_GetPerformanceCounter();
@@ -73,7 +73,7 @@ public:
         sdl->delay(std::max(16.67 - runtime, 0.0));
 
         if(s->draw) {
-          sdl->redraw(s->memory + DISPLAY_START);
+          render(s->memory + DISPLAY_START);
           s->draw = false;
         }
 
@@ -102,7 +102,7 @@ private:
 
   void load_rom() {
     // Get file size
-    std::ifstream chipFile(s->rom_loc, std::ios::binary | std::ios::ate); 
+    std::ifstream chipFile(s->romLoc, std::ios::binary | std::ios::ate); 
     if(!chipFile.is_open()) {
       fprintf(stderr, "Error occurred while opening chip-8 file.\n");
       exit(EXIT_FAILURE);
@@ -175,8 +175,9 @@ private:
             break;
           case 0x04: {
             uint8_t res = s->v[*ip & 0x0F] + s->v[ip[1] >> 4]; 
-            s->v[0x0F] = res < s->v[*ip & 0x0F]; 
+            uint8_t flag = res < s->v[*ip & 0x0F]; 
             s->v[*ip & 0x0F] = res;
+            s->v[0x0F] = flag; 
             break;
           } 
           case 0x05:
@@ -191,7 +192,7 @@ private:
             break;
           case 0x07:
             carry = s->v[*ip & 0x0F] <= s->v[ip[1] >> 4]; 
-            s->v[*ip & 0x0F] = s->v[ip[1] >> 4] - s->v[*ip & 0x0F]; 
+            s->v[*ip & 0x0F] = s->v[ip[1] >> 4] - s->v[*ip & 0x0F];
             s->v[0x0F] = carry;
             break;
           case 0x0E: 
@@ -219,12 +220,12 @@ private:
         s->pc += 2;
         break;
       case 0x0D: {
-        uint8_t x = s->v[*ip & 0x0F] % cfg->display_width, y = s->v[ip[1] >> 4] % cfg->display_height, n = ip[1] & 0x0F;
+        uint8_t x = s->v[*ip & 0x0F] % cfg->displayWidth, y = s->v[ip[1] >> 4] % cfg->displayHeight, n = ip[1] & 0x0F;
         s->v[0x0F] = 0;
-        for(uint8_t dy = 0; dy < n && y + dy < cfg->display_height; dy++) {
+        for(uint8_t dy = 0; dy < n && y + dy < cfg->displayHeight; dy++) {
           uint8_t spriteByte = s->memory[s->i + dy];
-          for(uint8_t dx = 0; dx < 8 && x + dx < cfg->display_width; dx++) {
-            uint8_t xBytes = (x + dx) / 8, yBytes = (y + dy) * cfg->display_width / 8;
+          for(uint8_t dx = 0; dx < 8 && x + dx < cfg->displayWidth; dx++) {
+            uint8_t xBytes = (x + dx) / 8, yBytes = (y + dy) * cfg->displayWidth / 8;
             uint8_t *displayLoc = s->memory + DISPLAY_START + yBytes + xBytes;
             uint8_t xBitPos = 7 - (x + dx) % 8, spriteBitPos = 7 - dx;
             uint8_t spriteBit = spriteByte >> spriteBitPos & 1, displayBit = *displayLoc >> xBitPos & 1;
@@ -294,6 +295,10 @@ private:
     s->sound -= s->sound > 0;
   }
 
+  void render(uint8_t const *display) { 
+    rcb(display);
+  }
+
   void not_implemented(uint8_t high, uint8_t low) {
     fprintf(stderr, "Opcode(%02X%02X) is not implemented.\n", high, low);
     exit(EXIT_FAILURE);
@@ -302,4 +307,5 @@ private:
   State *s;
   Config *cfg;
   SDL *sdl;
+  RenderCallback rcb;
 };

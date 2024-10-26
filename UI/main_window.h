@@ -1,5 +1,6 @@
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
+#pragma once
+#include "Emulator/emu_thread.h"
+#include "Common/common.h"
 
 #include <QMainWindow>
 
@@ -31,9 +32,12 @@ public Q_SLOTS:
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    Config* get_config();
 
 private:
-    Ui::MainWindow *ui;
-};
+    void update_window_size();
 
-#endif // MAIN_WINDOW_H
+    Ui::MainWindow *ui;
+    Config cfg{};
+    EmuThread *emuThread;
+};
