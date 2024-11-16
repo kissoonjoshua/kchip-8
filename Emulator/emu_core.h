@@ -6,7 +6,8 @@
 #include <cstddef>
 #include <cstring>
 #include <fstream>
-#include <bit>
+#include <mutex>
+#include <condition_variable>
 
 constexpr uint16_t PC_START = 0x200;
 constexpr uint16_t SP_START = 0xEA0;
@@ -36,8 +37,13 @@ constexpr uint8_t FONT[] = {
 
 class KChip8 {
 public:
-  KChip8(State *state, Config *config, SDL *sdlObj, RenderCallback cb): s{state}, cfg{config}, sdl{sdlObj}, rcb{cb} {
-    init_emu();
+  KChip8(State *state, Config *config, SDL *sdlObj, RenderCallback cb, std::mutex *mutex, std::condition_variable *convar)
+    : s{state}, cfg{config}, sdl{sdlObj}, rcb{cb}, mtx{mutex}, cv{convar} {
+    s->memory = new uint8_t[MAX_MEM];
+    if(!s->memory) {
+      fprintf(stderr, "Error occurred while allocating memory for the emulator.\n");
+      exit(EXIT_FAILURE);
+    }
   }
 
   ~KChip8() {
@@ -45,21 +51,20 @@ public:
     s->display = nullptr;
   }
 
-  void set_rom(std::string filePath) {
-    s->romLoc = filePath;
-  }
-
   void run() {
-    load_rom();
-    render(nullptr);
-
-    while(s->status != Status::STOPPED) {
+    while(true) {
       sdl->input_handler();
 
       switch(s->status) {
+      case Status::STOPPED: {
+        render(nullptr);
+        std::unique_lock lock(*mtx);
+        cv->wait(lock, [&](){ return s->status == Status::RUNNING; });
+        init_emu();
+        break;
+      }
       case Status::RESET:
         init_emu();
-        load_rom();
         render(nullptr);
         s->status = Status::RUNNING;
         break;
@@ -83,24 +88,18 @@ public:
       default: break;
       }
     }
+
+    render(nullptr);
   }
 
 private:
   void init_emu() {
-    s->status = Status::RUNNING;
     s->pc = PC_START; 
     s->sp = SP_START;
-    s->memory = new uint8_t[MAX_MEM]{};
-    if(!s->memory) {
-      fprintf(stderr, "Error occurred while allocating memory for the emulator.\n");
-      exit(EXIT_FAILURE);
-    }
     s->display = &s->memory[DISPLAY_START];
+    memset(s->memory, 0, MAX_MEM);
     memcpy(s->memory + FONT_START, FONT, FONT_SIZE);
     srand(static_cast<unsigned>(time(nullptr)));
-  }
-
-  void load_rom() {
     // Get file size
     std::ifstream chipFile(s->romLoc, std::ios::binary | std::ios::ate); 
     if(!chipFile.is_open()) {
@@ -109,7 +108,6 @@ private:
     }
     s->fileSize = chipFile.tellg();
     chipFile.seekg(0, std::ios::beg);
-
     // Read ROM
     if(!chipFile.read(reinterpret_cast<char*>(s->memory + PC_START), s->fileSize)) {
       fprintf(stderr, "Error occurred while reading chip-8 file.\n");
@@ -308,4 +306,6 @@ private:
   Config *cfg;
   SDL *sdl;
   RenderCallback rcb;
+  std::mutex *mtx;
+  std::condition_variable *cv;
 };

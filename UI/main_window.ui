@@ -71,8 +71,9 @@
     <property name="title">
      <string>&amp;Emulator</string>
     </property>
-    <addaction name="action_Reset"/>
     <addaction name="action_Pause"/>
+    <addaction name="action_Stop"/>
+    <addaction name="action_Reset"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menuEmulator"/>
@@ -136,6 +137,12 @@
    </property>
   </action>
   <action name="action_Pause">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Pause</string>
    </property>
@@ -197,6 +204,14 @@
    </property>
    <property name="toolTip">
     <string>Load Save From Slot 3</string>
+   </property>
+  </action>
+  <action name="action_Stop">
+   <property name="text">
+    <string>Stop</string>
+   </property>
+   <property name="toolTip">
+    <string>Stop Emulator</string>
    </property>
   </action>
  </widget>

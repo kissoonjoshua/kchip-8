@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>kchip-8.ico</file>
+    </qresource>
+</RCC>

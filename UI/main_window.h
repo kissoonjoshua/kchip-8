@@ -21,6 +21,7 @@ public Q_SLOTS:
     void on_action_Input_Settings_triggered();
     void on_action_Exit_triggered();
     void on_action_Pause_triggered();
+    void on_action_Stop_triggered();
     void on_action_Reset_triggered();
     void on_action_Save_Slot_1_triggered();
     void on_action_Save_Slot_2_triggered();
@@ -36,6 +37,7 @@ public:
 
 private:
     void update_window_size();
+    void reset_pause_action();
 
     Ui::MainWindow *ui;
     Config cfg{};

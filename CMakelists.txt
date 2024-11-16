@@ -16,7 +16,8 @@ qt_standard_project_setup()
 set(UI UI/main.cpp
        UI/main_window.cpp
        UI/main_window.h
-       UI/main_window.ui)
+       UI/main_window.ui
+       UI/images.qrc)
 set(COMMON Common/common.h)
 set(IO IO/io.h
        IO/GLWidget.h)
@@ -26,6 +27,7 @@ set(EMULATOR Emulator/emu_core.h
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
 qt_add_executable(${PROJECT_NAME} ${UI} ${COMMON} ${IO} ${EMULATOR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
