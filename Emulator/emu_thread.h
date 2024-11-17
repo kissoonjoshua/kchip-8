@@ -18,6 +18,7 @@ public:
   bool stopped() const;
   void start_emu();
   void stop();
+  void key_press(SDL_Scancode key, bool keyDown);
 protected:
   void run() override;
 private:

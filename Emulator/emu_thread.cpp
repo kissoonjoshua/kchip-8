@@ -12,6 +12,12 @@ void EmuThread::toggle_pause(bool pause) { state.status = pause ? Status::PAUSED
 void EmuThread::reset() { state.status = Status::RESET; }
 void EmuThread::set_rom(std::string filepath) { state.romLoc = filepath; }
 bool EmuThread::stopped() const { return state.status == Status::STOPPED; }
+void EmuThread::key_press(SDL_Scancode key, bool keyDown) { 
+  SDL_Event sdlEvent;
+  sdlEvent.type = keyDown ? SDL_KEYDOWN : SDL_KEYUP;
+  sdlEvent.key.keysym.scancode = key;
+  SDL_PushEvent(&sdlEvent);
+}
 void EmuThread::start_emu() { 
   std::unique_lock lock(mtx);
   state.status = Status::RUNNING; 

@@ -3,6 +3,7 @@
 #include "Common/common.h"
 
 #include <QMainWindow>
+#include <QKeyEvent>
 
 namespace Ui {
 class MainWindow;
@@ -34,6 +35,10 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     Config* get_config();
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
     void update_window_size();

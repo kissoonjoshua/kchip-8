@@ -20,6 +20,8 @@ set(UI UI/main.cpp
        UI/images.qrc)
 set(COMMON Common/common.h)
 set(IO IO/io.h
+       IO/audio.cpp
+       IO/input.cpp
        IO/GLWidget.h)
 set(EMULATOR Emulator/emu_core.h
              Emulator/emu_thread.h

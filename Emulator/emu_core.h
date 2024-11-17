@@ -53,8 +53,6 @@ public:
 
   void run() {
     while(true) {
-      sdl->input_handler();
-
       switch(s->status) {
       case Status::STOPPED: {
         render(nullptr);
@@ -69,6 +67,7 @@ public:
         s->status = Status::RUNNING;
         break;
       case Status::RUNNING: {
+        sdl->handle_input();
         uint64_t start = SDL_GetPerformanceCounter();
         for(uint32_t i = 0; i < cfg->instPerSec / 60; i++) {
           emulate_op();
@@ -83,6 +82,7 @@ public:
         }
 
         update_timers();
+        s->prevKeys = s->keys;
         break;
       }
       default: break;

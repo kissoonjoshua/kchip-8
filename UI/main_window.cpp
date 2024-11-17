@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     setWindowTitle("KChip-8");
     setWindowIcon(QIcon(":/images/kchip-8.ico"));
+    setFocusPolicy(Qt::StrongFocus);
     setCentralWidget(ui->openGLWidget);
     update_window_size();
     // Disable resize on drag
@@ -40,7 +41,7 @@ void MainWindow::on_action_Load_ROM_triggered() {
         if(emuThread->stopped()) {
             emuThread->start_emu();
         } else {
-            on_action_Reset_triggered();
+            ui->action_Reset->trigger();
         }
     }
 }

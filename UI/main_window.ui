@@ -26,16 +26,16 @@
      <x>0</x>
      <y>0</y>
      <width>708</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
     <property name="title">
-     <string>&amp;File</string>
+     <string>File</string>
     </property>
     <widget class="QMenu" name="menu_Save_State">
      <property name="title">
-      <string>&amp;Save State</string>
+      <string>Save State</string>
      </property>
      <addaction name="action_Save_Slot_1"/>
      <addaction name="action_Save_Slot_2"/>
@@ -43,7 +43,7 @@
     </widget>
     <widget class="QMenu" name="menu_Load_State">
      <property name="title">
-      <string>&amp;Load State</string>
+      <string>Load State</string>
      </property>
      <addaction name="action_Load_Slot_1"/>
      <addaction name="action_Load_Slot_2"/>
@@ -59,7 +59,7 @@
    </widget>
    <widget class="QMenu" name="menu_Options">
     <property name="title">
-     <string>&amp;Options</string>
+     <string>Options</string>
     </property>
     <addaction name="action_Configuration"/>
     <addaction name="separator"/>
@@ -69,7 +69,7 @@
    </widget>
    <widget class="QMenu" name="menuEmulator">
     <property name="title">
-     <string>&amp;Emulator</string>
+     <string>Emulator</string>
     </property>
     <addaction name="action_Pause"/>
     <addaction name="action_Stop"/>
