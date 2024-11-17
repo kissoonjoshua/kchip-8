@@ -6,11 +6,11 @@
 
 class SDL {
 public:
-  SDL(State *state, Config *config): emuState{state}, cfg{config} {
+  SDL(State *state, Config *config, ErrorCallback errorCB): emuState{state}, cfg{config} {
     if(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) < 0) {
-      fprintf(stderr, "SDL failed to initialize. SDL_Error: %s\n", SDL_GetError());
-      exit(EXIT_FAILURE);
-    } 
+      errorCB("SDL failed to initialize. SDL_Error: " + std::string(SDL_GetError()), true);
+      return;
+    }
 
     want.freq = cfg->sampleRate;
     want.format = AUDIO_S16LSB;
@@ -19,10 +19,9 @@ public:
     want.callback = audio_callback;
     want.userdata = this->cfg;
     device = SDL_OpenAudioDevice(nullptr, 0, &want, &have, 0);
-    if(!device || want.format != have.format || want.channels != have.channels) {
-      fprintf(stderr, "Could not create SDL audio device. SDL_Error: %s\n", SDL_GetError());
-      exit(EXIT_FAILURE);
-    }
+
+    if(!device || want.format != have.format || want.channels != have.channels)
+      errorCB("Could not create SDL audio device. SDL_Error: " + std::string(SDL_GetError()), true);
   }
 
   ~SDL() {

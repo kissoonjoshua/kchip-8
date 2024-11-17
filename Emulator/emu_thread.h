@@ -10,7 +10,7 @@
 class EmuThread : public QThread {
   Q_OBJECT
 public:
-  EmuThread(Config *config, RenderCallback callback);
+  EmuThread(Config *config, RenderCallback renderCB);
   ~EmuThread();
   void toggle_pause(bool pause);
   void reset();
@@ -18,7 +18,9 @@ public:
   bool stopped() const;
   void start_emu();
   void stop();
-  void key_press(SDL_Scancode key, bool keyDown);
+  void key_press(SDL_KeyCode key, bool keyDown);
+signals:
+  void error(const std::string &msg, const bool fatal);
 protected:
   void run() override;
 private:

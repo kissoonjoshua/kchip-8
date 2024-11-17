@@ -12,8 +12,16 @@ class MainWindow;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+public:
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+    Config* get_config();
 
-public Q_SLOTS:
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+
+private Q_SLOTS:
     void on_action_Load_ROM_triggered();
     void on_action_Open_Recent_triggered();
     void on_action_Configuration_triggered();
@@ -30,15 +38,7 @@ public Q_SLOTS:
     void on_action_Load_Slot_1_triggered();
     void on_action_Load_Slot_2_triggered();
     void on_action_Load_Slot_3_triggered();
-
-public:
-    explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
-    Config* get_config();
-
-protected:
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
+    void error_popup(const std::string &msg, const bool fatal);
 
 private:
     void update_window_size();

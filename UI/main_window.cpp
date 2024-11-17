@@ -2,6 +2,7 @@
 #include "UI/ui_main_window.h"
 
 #include <QFileDialog>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -15,10 +16,11 @@ MainWindow::MainWindow(QWidget *parent)
     update_window_size();
     // Disable resize on drag
     statusBar()->setSizeGripEnabled(false);
-    // Create render callback
-    auto renderCallback = [&](const uint8_t *buffer) { ui->openGLWidget->update_buffer(buffer); };
+    // Create callback
+    auto renderCallback = [&](const uint8_t *buffer){ ui->openGLWidget->update_buffer(buffer); };
     // Start emulation thread
     emuThread = new EmuThread(&cfg, renderCallback);
+    connect(emuThread, &EmuThread::error, this, &MainWindow::error_popup);
     emuThread->start();
 }
 
@@ -88,6 +90,19 @@ void MainWindow::reset_pause_action() {
         ui->action_Pause->setChecked(false);
         ui->action_Pause->setText("Pause");
     }
+}
+
+void MainWindow::error_popup(const std::string& msg, const bool fatal) {
+    if(!fatal)
+        ui->action_Stop->trigger();
+    QMessageBox popup;
+    popup.setIcon(fatal ? QMessageBox::Critical : QMessageBox::Warning);
+    popup.setWindowTitle(fatal ? "Fatal Error" : "Error");
+    popup.setText(QString(msg.c_str()));
+    popup.setStandardButtons(QMessageBox::Ok);
+    popup.exec();
+    if(fatal) 
+        QApplication::quit();
 }
 
 Config* MainWindow::get_config() { return &cfg; }

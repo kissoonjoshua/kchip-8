@@ -5,6 +5,7 @@
 
 enum class Status: uint8_t {
   STOPPED,
+  STOPPING,
   PAUSED,
   RUNNING,
   RESET,
@@ -41,3 +42,4 @@ struct Config {
 };
 
 using RenderCallback = std::function<void(const uint8_t*)>;
+using ErrorCallback = std::function<void(const std::string&, const bool)>;

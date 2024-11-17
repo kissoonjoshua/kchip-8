@@ -37,13 +37,11 @@ constexpr uint8_t FONT[] = {
 
 class KChip8 {
 public:
-  KChip8(State *state, Config *config, SDL *sdlObj, RenderCallback cb, std::mutex *mutex, std::condition_variable *convar)
-    : s{state}, cfg{config}, sdl{sdlObj}, rcb{cb}, mtx{mutex}, cv{convar} {
+  KChip8(State *state, Config *config, SDL *sdlObj, RenderCallback renderCB, ErrorCallback errorCB, std::mutex *mutex, 
+    std::condition_variable *convar) : s{state}, cfg{config}, sdl{sdlObj}, rcb{renderCB}, ecb{errorCB}, mtx{mutex}, cv{convar} {
     s->memory = new uint8_t[MAX_MEM];
-    if(!s->memory) {
-      fprintf(stderr, "Error occurred while allocating memory for the emulator.\n");
-      exit(EXIT_FAILURE);
-    }
+    if(!s->memory)
+      ecb("Error occurred while allocating memory for the emulator.", true);
   }
 
   ~KChip8() {
@@ -82,7 +80,6 @@ public:
         }
 
         update_timers();
-        s->prevKeys = s->keys;
         break;
       }
       default: break;
@@ -103,16 +100,14 @@ private:
     // Get file size
     std::ifstream chipFile(s->romLoc, std::ios::binary | std::ios::ate); 
     if(!chipFile.is_open()) {
-      fprintf(stderr, "Error occurred while opening chip-8 file.\n");
-      exit(EXIT_FAILURE);
+      halt_emu("Error occurred while opening chip-8 file.");
+      return;
     }
     s->fileSize = chipFile.tellg();
     chipFile.seekg(0, std::ios::beg);
     // Read ROM
-    if(!chipFile.read(reinterpret_cast<char*>(s->memory + PC_START), s->fileSize)) {
-      fprintf(stderr, "Error occurred while reading chip-8 file.\n");
-      exit(EXIT_FAILURE);
-    }
+    if(!chipFile.read(reinterpret_cast<char*>(s->memory + PC_START), s->fileSize))
+      halt_emu("Error occurred while reading chip-8 file.");
   }
 
   void emulate_op() {
@@ -298,14 +293,21 @@ private:
   }
 
   void not_implemented(uint8_t high, uint8_t low) {
-    fprintf(stderr, "Opcode(%02X%02X) is not implemented.\n", high, low);
-    exit(EXIT_FAILURE);
+    char error[64];
+    snprintf(error, 64, "Opcode(%02X%02X) is not implemented.", high, low);
+    halt_emu(error);
+  }
+
+  void halt_emu(const std::string &error) {
+    s->status = Status::STOPPING;
+    ecb(error, false);
   }
 
   State *s;
   Config *cfg;
   SDL *sdl;
   RenderCallback rcb;
+  ErrorCallback ecb;
   std::mutex *mtx;
   std::condition_variable *cv;
 };
