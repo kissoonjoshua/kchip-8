@@ -25,7 +25,7 @@ protected:
   void run() override;
 private:
   KChip8 *emu;
-  State state;
+  State state{};
   Config *cfg;
   SDL *sdl;
   RenderCallback rcb;
